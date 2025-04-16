@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SoulNFT Mint</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 2rem; text-align: center; }
+    img { max-width: 300px; margin: 1rem 0; border-radius: 12px; }
+    button { padding: 1rem 2rem; font-size: 1rem; border-radius: 10px; border: none; cursor: pointer; margin: 0.5rem; }
+    #status { margin-top: 1rem; color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Mint your SoulNFT</h1>
+  <div id="image"></div>
+  <button onclick="connect()">🔌 Connect Wallet</button>
+  <button onclick="approve()">✅ Approve USDT</button>
+  <button onclick="mint()">🪄 Mint NFT</button>
+  <div id="status"></div>
+
+<script>
+const soulNFTAddress = "0x96CD34ce2f02a03AE0da0E06b747EAa74D35bF98";
+const usdtAddress = "0x6aF0FfdBa2b607153dD15FbD36503C7F3Bf9CfF3";
+const mintPrice = "1000000"; // 1 USDT (6 decimals)
+
+const soulNFTAbi = [
+  "function mintSoul(string memory tokenURI) public",
+];
+const usdtAbi = [
+  "function approve(address spender, uint256 amount) public returns (bool)",
+];
+
+let provider, signer, soulNFT, usdt, tokenURI;
+
+window.onload = () => {
+  const params = new URLSearchParams(window.location.search);
+  tokenURI = params.get("uri");
+  if (tokenURI && tokenURI.startsWith("ipfs://")) {
+    const ipfsHash = tokenURI.replace("ipfs://", "");
+    document.getElementById("image").innerHTML =
+      `<img src='https://gateway.pinata.cloud/ipfs/${ipfsHash}' alt='NFT image'>`;
+  }
+}
+
+async function connect() {
+  if (!window.ethereum) return alert("Please install MetaMask!");
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+  soulNFT = new ethers.Contract(soulNFTAddress, soulNFTAbi, signer);
+  usdt = new ethers.Contract(usdtAddress, usdtAbi, signer);
+  document.getElementById("status").innerText = "✅ Wallet connected!";
+}
+
+async function approve() {
+  if (!signer) return alert("Connect wallet first!");
+  const tx = await usdt.approve(soulNFTAddress, mintPrice);
+  await tx.wait();
+  document.getElementById("status").innerText = "✅ USDT approved!";
+}
+
+async function mint() {
+  if (!signer) return alert("Connect wallet first!");
+  if (!tokenURI) return alert("Token URI not found in URL.");
+  const tx = await soulNFT.mintSoul(tokenURI);
+  await tx.wait();
+  document.getElementById("status").innerText = "🎉 NFT minted successfully!";
+}
+</script>
+</body>
+</html>
